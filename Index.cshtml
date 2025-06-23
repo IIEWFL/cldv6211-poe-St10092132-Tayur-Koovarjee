@@ -1,0 +1,43 @@
+﻿@model IEnumerable<ST10092132.Models.Venue>
+
+@{
+    ViewData["Title"] = "Venues";
+}
+
+<h1>Venues</h1>
+
+@if (TempData["ErrorMessage"] != null)
+{
+    <div class="alert alert-danger">
+        @TempData["ErrorMessage"]
+    </div>
+}
+
+<p>
+    <a asp-action="Create" class="btn btn-primary">Create New Venue</a>
+</p>
+<table class="table table-striped">
+    <thead>
+        <tr>
+            <th>@Html.DisplayNameFor(model => model.VenueName)</th>
+            <th>@Html.DisplayNameFor(model => model.Location)</th>
+            <th>@Html.DisplayNameFor(model => model.Capacity)</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var item in Model)
+        {
+            <tr>
+                <td>@Html.DisplayFor(modelItem => item.VenueName)</td>
+                <td>@Html.DisplayFor(modelItem => item.Location)</td>
+                <td>@Html.DisplayFor(modelItem => item.Capacity)</td>
+                <td>
+                    <a asp-action="Edit" asp-route-id="@item.VenueId" class="btn btn-sm btn-warning">Edit</a>
+                    <a asp-action="Details" asp-route-id="@item.VenueId" class="btn btn-sm btn-info">Details</a>
+                    <a asp-action="Delete" asp-route-id="@item.VenueId" class="btn btn-sm btn-danger">Delete</a>
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>
