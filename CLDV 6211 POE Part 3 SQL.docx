@@ -1,0 +1,132 @@
+USE master;
+GO
+
+IF EXISTS (SELECT * FROM sys.databases WHERE name = 'POEDB')
+    DROP DATABASE POEDB;
+GO
+
+CREATE DATABASE POEDB;
+GO
+
+USE POEDB;
+GO
+
+-- Create Venue Table with Availability
+CREATE TABLE Venue (
+    VenueId INT PRIMARY KEY IDENTITY(1,1),
+    VenueName NVARCHAR(100) NOT NULL,
+    Location NVARCHAR(255) NOT NULL,
+    Capacity INT NOT NULL,
+    ImageUrl NVARCHAR(255),
+    IsAvailable BIT NOT NULL DEFAULT 1  -- Added availability field
+);
+GO
+
+-- Create EventType Lookup Table
+CREATE TABLE EventType (
+    EventTypeId INT PRIMARY KEY IDENTITY(1,1),
+    Name NVARCHAR(50) NOT NULL UNIQUE
+);
+GO
+
+-- Predefined Event Categories
+INSERT INTO EventType (Name) 
+VALUES 
+    ('Conference'),
+    ('Wedding'),
+    ('Concert'),
+    ('Workshop'),
+    ('Product Launch');
+GO
+
+-- Create Event Table with EventType
+CREATE TABLE Event (
+    EventId INT PRIMARY KEY IDENTITY(1,1),
+    EventName NVARCHAR(100) NOT NULL,
+    EventDate DATETIME NOT NULL,
+    Description NVARCHAR(MAX),
+    EventTypeId INT NOT NULL,
+    FOREIGN KEY (EventTypeId) REFERENCES EventType(EventTypeId)
+);
+GO
+
+-- Create Booking Table
+CREATE TABLE Booking (
+    BookingId INT PRIMARY KEY IDENTITY(1,1),
+    EventId INT NOT NULL,
+    VenueId INT NOT NULL,
+    BookingDate DATETIME NOT NULL,
+    FOREIGN KEY (EventId) REFERENCES Event(EventId),
+    FOREIGN KEY (VenueId) REFERENCES Venue(VenueId)
+);
+GO
+
+-- Insert sample venues with availability status
+INSERT INTO Venue (VenueName, Location, Capacity, ImageUrl, IsAvailable)
+VALUES
+    ('Grand Conference Center', 'New York', 500, 'https://via.placeholder.com/150?text=Grand+Conference', 1),
+    ('Sunset Banquet Hall', 'Los Angeles', 300, 'https://via.placeholder.com/150?text=Sunset+Banquet', 1),
+    ('Tech Hub Arena', 'San Francisco', 200, 'https://via.placeholder.com/150?text=Tech+Hub', 0),
+    ('Royal Garden Hotel', 'London', 150, 'https://via.placeholder.com/150?text=Royal+Garden', 1),
+    ('Skyline Rooftop', 'Dubai', 100, 'https://via.placeholder.com/150?text=Skyline+Rooftop', 0);
+GO
+
+-- Insert sample events with types
+INSERT INTO Event (EventName, EventDate, Description, EventTypeId)
+VALUES
+    ('Tech Summit 2025', '2025-03-15', 'Annual technology conference', 1),
+    ('Wedding: Jane & John', '2025-06-20', 'Wedding ceremony', 2),
+    ('Music Festival: Summer Beats', '2025-07-10', 'Outdoor music festival', 3),
+    ('Corporate Workshop: Azure Basics', '2025-04-05', 'Cloud training session', 4),
+    ('Product Launch: NextGen', '2025-05-01', 'New AI product launch', 5);
+GO
+
+-- Insert sample bookings
+INSERT INTO Booking (EventId, VenueId, BookingDate)
+VALUES
+    (1, 1, '2025-03-15'),
+    (2, 2, '2025-06-20'),
+    (3, 3, '2025-07-10'),
+    (4, 4, '2025-04-05'),
+    (5, 5, '2025-05-01');
+GO
+
+-- Create search procedure with filters
+CREATE PROCEDURE SearchEvents
+    @EventTypeId INT = NULL,
+    @StartDate DATETIME = NULL,
+    @EndDate DATETIME = NULL,
+    @VenueAvailable BIT = NULL
+AS
+BEGIN
+    SELECT 
+        e.EventId,
+        e.EventName,
+        e.EventDate,
+        e.Description,
+        et.Name AS EventType,
+        v.VenueName,
+        v.Location,
+        v.Capacity,
+        v.ImageUrl,
+        v.IsAvailable AS VenueAvailable
+    FROM Event e
+    INNER JOIN EventType et ON e.EventTypeId = et.EventTypeId
+    INNER JOIN Booking b ON e.EventId = b.EventId
+    INNER JOIN Venue v ON b.VenueId = v.VenueId
+    WHERE 
+        (@EventTypeId IS NULL OR e.EventTypeId = @EventTypeId)
+        AND (@StartDate IS NULL OR e.EventDate >= @StartDate)
+        AND (@EndDate IS NULL OR e.EventDate <= @EndDate)
+        AND (@VenueAvailable IS NULL OR v.IsAvailable = @VenueAvailable)
+    ORDER BY e.EventDate;
+END;
+GO
+
+-- Test the search procedure
+EXEC SearchEvents 
+    @EventTypeId = 1,          -- Conference events
+    @StartDate = '2025-01-01', 
+    @EndDate = '2025-12-31',
+    @VenueAvailable = 1;       -- Only available venues
+GO
